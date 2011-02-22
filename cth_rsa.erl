@@ -47,6 +47,7 @@
                 , workers = []
                 , primes = []
                 , bits
+                , intask
                }).
 
 -record(sdata, {master
@@ -182,6 +183,7 @@ master() ->
 master_loop(#mdata{task = T
                    , workers = W
                    , primes = Primes
+                   , intask = I
                   } = LoopData) ->
     receive
         update ->
@@ -202,17 +204,21 @@ master_loop(#mdata{task = T
             case T of
                 undefined ->
                     [ start_prime(S, Bits) || S <- W ],
-                    master_loop(LoopData#mdata{task = Pid, bits = Bits});
+                    master_loop(LoopData#mdata{task = Pid
+                                               , bits = Bits
+                                               , intask = primes
+                                              });
                 _ ->
                     Pid ! {error, already_doing_shit}
             end;
-        {prime, N} ->
+        {prime, N} when I =:= primes ->
             case Primes of
                 [P] ->
                     [ kill(S) || S <- W ],
-                    T ! {ok, primes, {P, N}},
+                    catch T ! {ok, primes, {P, N}},
                     master_loop(LoopData#mdata{task = undefined
                                                , primes = []
+                                               , intask = undefined
                                               });
                 _   ->
                     master_loop(LoopData#mdata{primes = [N]})
