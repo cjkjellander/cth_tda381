@@ -171,6 +171,7 @@ start_master() ->
 
 master() ->
     register(master, self()),
+    global:register_name(master, self()),
     master_loop(#mdata{}).
 
 master_loop(#mdata{task = T
@@ -242,7 +243,11 @@ dist_primes(Bits) ->
     end.
 
 call_in(Pid) ->
-    master ! {register, Pid},
+    try
+        master ! {register, Pid}
+    catch
+        _:_ -> global:send(master, {register, Pid})
+    end,
     receive
         Reply -> Reply
     after 10000 ->
