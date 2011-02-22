@@ -22,13 +22,29 @@
 -export([start_master/0
          , master/0
          , master_loop/1
+         , mterminate/0
+         , mupdate/0
+         , dist_primes/1
          ]).
+
+-export([start_servant/0
+         , servant/0
+         , servant_loop/1
+         , slave_prime/1
+         , do_slave_prime/2
+        ]).
 
 -define(GIGANTIC, 16#7fffffff).
 -define(S_SPACE,  16#100000).
 
 -record(mdata, {task
                 , workers = []
+                , primes = []
+                , bits
+               }).
+
+-record(sdata, {master
+                , worker
                }).
 
 exp_mod(A, 1, _) ->
@@ -148,6 +164,7 @@ do_rho(N, R, X, Y) ->
 apa(0) -> ok;
 apa(N) -> apa(N-1).
 
+
 start_master() ->
     spawn(?MODULE, master, []).
 
@@ -155,16 +172,124 @@ master() ->
     register(master, self()),
     master_loop(#mdata{}).
 
-master_loop(#mdata{task = _T, workers = W} = LoopData) ->
+master_loop(#mdata{task = T
+                   , workers = W
+                   , primes = Primes
+                  } = LoopData) ->
     receive
         update ->
+            [ update(S) || S <- W],
             ?MODULE:master_loop(LoopData);
         terminate ->
             ok;
+        killall ->
+            [ S ! terminate || S <- W ],
+            master_loop(LoopData#mdata{workers=[]});
         {register, Pid} ->
+            Pid ! {ok, self()},
             master_loop(LoopData#mdata{workers=[Pid|W]});
         {listworkers, Pid} ->
-            Pid ! W;
+            Pid ! W,
+            master_loop(LoopData);
+        {primes, Pid, Bits} ->
+            case T of
+                undefined ->
+                    [ start_prime(S, Bits) || S <- W ],
+                    master_loop(LoopData#mdata{task = Pid, bits = Bits});
+                _ ->
+                    Pid ! {error, already_doing_shit}
+            end;
+        {prime, N} ->
+            case Primes of
+                [P] ->
+                    [ kill(S) || S <- W ],
+                    T ! {ok, primes, {P, N}},
+                    master_loop(LoopData#mdata{task = undefined
+                                               , primes = []
+                                              });
+                _   ->
+                    master_loop(LoopData#mdata{primes = [N]})
+            end;
+        {noprime, Pid} ->
+            start_prime(Pid, LoopData#mdata.bits),
+            master_loop(LoopData);
         _ ->
             master_loop(LoopData)
+    end.
+
+start_prime(Pid, Bits) ->
+    catch Pid ! {find_prime, Bits}.
+
+kill(Pid) ->
+    catch Pid ! kill.
+
+update(Pid) ->
+    catch Pid ! update.
+
+
+mterminate() ->
+    master ! terminate.
+
+mupdate() ->
+    master ! update.
+
+dist_primes(Bits) ->
+    master ! {primes, self(), Bits div 2},
+    receive
+        {ok, primes, {P, Q}} ->
+            {P, Q}
+    end.
+
+call_in(Pid) ->
+    master ! {register, Pid},
+    receive
+        Reply -> Reply
+    after 10000 ->
+            {error, timeout}
+    end.
+
+slaves(N) ->
+    [ 
+
+start_servant() ->
+    spawn(?MODULE, servant, []).
+
+servant() ->
+    {ok, Pid} = call_in(self()),
+    servant_loop(#sdata{master = Pid}).
+
+servant_loop(#sdata{worker = W} = LoopData) ->
+    receive
+        terminate ->
+            ok;
+        update ->
+            ?MODULE:servant_loop(LoopData);
+        {find_prime, Bits} ->
+            try_kill(W),
+            {ok, Pid} = slave_prime(Bits),
+            servant_loop(LoopData#sdata{worker = Pid});
+        {prime, N} ->
+            try_kill(W),
+            master ! {prime, N},
+            servant_loop(LoopData#sdata{worker = undefined});
+        _ ->
+            servant_loop(LoopData)
+    end.
+
+try_kill(Pid) ->
+    case Pid of
+        undefined -> ok;
+        _         -> exit(Pid, normal)
+    end.
+
+slave_prime(Bits) ->
+    Pid = spawn(?MODULE, do_slave_prime, [self(), Bits]),
+    {ok, Pid}.
+
+do_slave_prime(Pid, Bits) ->
+    case find_prime(Bits, -1) of
+        {error, Reply} ->
+            Pid ! {error, Reply};
+        N ->
+            Pid ! {prime, N}
     end.
