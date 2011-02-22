@@ -7,7 +7,10 @@
          , find_prime/1
          , find_prime/2
          , mod_inv/2
+         , n/2
          , phi/2
+         , gen_key/1
+         , rsa/3
          , int_code/1
          , int_decode/1
          , gcd/2
@@ -76,7 +79,25 @@ ext_gcd(A, B) ->
     {X, Y} = ext_gcd(B, A rem B),
     {Y, X-(Y*(A div B))}.
 
+n(P, Q) -> P*Q.
+
 phi(P, Q) -> (P-1)*(Q-1).
+
+gen_key(Bits) when Bits rem 16 =:= 0->
+    P   = find_prime(Bits div 2, -1),
+    Q   = find_prime(Bits div 2, -1),
+    N   = n(P, Q),
+    Phi = phi(P, Q),
+    E   = 16#10001, %Good public exponent
+    case Phi rem E =:= 0 of
+        true -> gen_key(Bits);
+        _    ->
+            {_, D} = ext_gcd(Phi, E),
+            {E, D, N}
+    end.
+
+rsa(Data, Key, Mod) ->
+    exp_mod(Data, Key, Mod).
 
 int_code(L) -> do_int_code(L, 0).
 
