@@ -28,11 +28,15 @@
          ]).
 
 -export([start_servant/0
+         , start_servant/1
          , servant/0
+         , servant/1
          , servant_loop/1
          , slave_prime/1
          , do_slave_prime/2
          , slaves/1
+         , call_in/1
+         , call_in/2
         ]).
 
 -define(GIGANTIC, 16#7fffffff).
@@ -243,11 +247,10 @@ dist_primes(Bits) ->
     end.
 
 call_in(Pid) ->
-    try
-        master ! {register, Pid}
-    catch
-        _:_ -> global:send(master, {register, Pid})
-    end,
+    call_in(Pid, node()).
+
+call_in(Pid, Node) ->
+    {master, Node} ! {register, Pid},
     receive
         Reply -> Reply
     after 10000 ->
@@ -258,10 +261,16 @@ slaves(N) ->
     [ start_servant() || _ <- lists:seq(1,N) ].
 
 start_servant() ->
-    spawn(?MODULE, servant, []).
+    start_servant(node()).
+
+start_servant(Node) ->
+    spawn(?MODULE, servant, [Node]).
 
 servant() ->
-    {ok, Pid} = call_in(self()),
+    servant(node()).
+
+servant(Node) ->
+    {ok, Pid} = call_in(self(), Node),
     servant_loop(#sdata{master = Pid}).
 
 servant_loop(#sdata{worker = W} = LoopData) ->
