@@ -277,7 +277,7 @@ servant(Node) ->
     {ok, Pid} = call_in(self(), Node),
     servant_loop(#sdata{master = Pid}).
 
-servant_loop(#sdata{worker = W} = LoopData) ->
+servant_loop(#sdata{master = M, worker = W} = LoopData) ->
     receive
         terminate ->
             ok;
@@ -289,7 +289,7 @@ servant_loop(#sdata{worker = W} = LoopData) ->
             servant_loop(LoopData#sdata{worker = Pid});
         {prime, N} ->
             try_kill(W),
-            master ! {prime, N},
+            M ! {prime, N},
             servant_loop(LoopData#sdata{worker = undefined});
         _ ->
             servant_loop(LoopData)
