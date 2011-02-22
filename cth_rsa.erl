@@ -19,6 +19,11 @@
          , apa/1
         ]).
 
+-export([start_master/0
+         , master/0
+         , master_loop/1
+         ]).
+
 -define(GIGANTIC, 16#7fffffff).
 -define(S_SPACE,  16#100000).
 
@@ -139,4 +144,21 @@ do_rho(N, R, X, Y) ->
 apa(0) -> ok;
 apa(N) -> apa(N-1).
 
+start_master() ->
+    spawn(?MODULE, master, []).
 
+master() ->
+    register(master, self()),
+    master_loop([]).
+
+master_loop(LoopData) ->
+    receive
+        update ->
+            ?MODULE:master_loop(LoopData);
+        terminate ->
+            ok;
+        {register, Pid} ->
+            master_loop([Pid | LoopData]);
+        _ ->
+            master_loop(LoopData)
+    end.
