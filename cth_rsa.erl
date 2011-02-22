@@ -35,6 +35,7 @@
          , slave_prime/1
          , do_slave_prime/2
          , slaves/1
+         , slaves/2
          , call_in/1
          , call_in/2
         ]).
@@ -258,7 +259,10 @@ call_in(Pid, Node) ->
     end.
 
 slaves(N) ->
-    [ start_servant() || _ <- lists:seq(1,N) ].
+    slaves(N, node()).
+
+slaves(N, Node) ->
+    [ start_servant(Node) || _ <- lists:seq(1,N) ].
 
 start_servant() ->
     start_servant(node()).
