@@ -27,6 +27,10 @@
 -define(GIGANTIC, 16#7fffffff).
 -define(S_SPACE,  16#100000).
 
+-record(mdata, {task
+                , workers = []
+               }).
+
 exp_mod(A, 1, _) ->
     A;
 exp_mod(_, 0, _) ->
@@ -149,16 +153,18 @@ start_master() ->
 
 master() ->
     register(master, self()),
-    master_loop([]).
+    master_loop(#mdata{}).
 
-master_loop(LoopData) ->
+master_loop(#mdata{task = _T, workers = W} = LoopData) ->
     receive
         update ->
             ?MODULE:master_loop(LoopData);
         terminate ->
             ok;
         {register, Pid} ->
-            master_loop([Pid | LoopData]);
+            master_loop(LoopData#mdata{workers=[Pid|W]});
+        {listworkers, Pid} ->
+            Pid ! W;
         _ ->
             master_loop(LoopData)
     end.
