@@ -32,6 +32,7 @@
          , servant_loop/1
          , slave_prime/1
          , do_slave_prime/2
+         , slaves/1
         ]).
 
 -define(GIGANTIC, 16#7fffffff).
@@ -249,7 +250,7 @@ call_in(Pid) ->
     end.
 
 slaves(N) ->
-    [ 
+    [ start_servant() || _ <- lists:seq(1,N) ].
 
 start_servant() ->
     spawn(?MODULE, servant, []).
