@@ -300,7 +300,7 @@ dist_gen_key(Bits) when Bits rem 16 =:= 0->
     Phi    = phi(P, Q),
     E      = 16#10001, %Good public exponent
     case Phi rem E =:= 0 of
-        true -> gen_key(Bits);
+        true -> dist_gen_key(Bits);
         _    ->
             D = mod_inv(Phi, E),
             {E, D, N}
