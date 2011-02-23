@@ -128,7 +128,7 @@ gen_key(Bits) when Bits rem 16 =:= 0->
     case Phi rem E =:= 0 of
         true -> gen_key(Bits);
         _    ->
-            {_, D} = mod_inv(Phi, E),
+            D = mod_inv(Phi, E),
             {E, D, N}
     end.
 
@@ -302,7 +302,7 @@ dist_gen_key(Bits) when Bits rem 16 =:= 0->
     case Phi rem E =:= 0 of
         true -> gen_key(Bits);
         _    ->
-            {_, D} = mod_inv(Phi, E),
+            D = mod_inv(Phi, E),
             {E, D, N}
     end.
 
