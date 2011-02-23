@@ -192,7 +192,7 @@ master_loop(#mdata{task = T
             [ update(S) || S <- W ],
             ?MODULE:master_loop(LoopData);
         terminate ->
-            [ terminate(s) || S <- W ],
+            [ terminate(S) || S <- W ],
             ok;
         killall ->
             [ kill(S) || S <- W ],
