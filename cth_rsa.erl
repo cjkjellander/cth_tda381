@@ -154,10 +154,9 @@ gcd(A, B) -> gcd(B, A rem B).
 f(X,R,N) -> (X*X+R) rem N.
 
 rho(N)->
-    rho(N,0).
+    rho(N,1).
 
-rho(N, R1) ->
-    R = R1 * 2 + 1,
+rho(N, R) ->
     X = f(1, R, N),
     Y = f(f(1, R, N), R, N),
     do_rho(N, R, X, Y).
