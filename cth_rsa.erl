@@ -129,7 +129,7 @@ gen_key(Bits) when Bits rem 16 =:= 0->
         true -> gen_key(Bits);
         _    ->
             D = mod_inv(Phi, E),
-            {E, D, N}
+            {E, D, N, P, Q}
     end.
 
 rsa(Data, Key, Mod) ->
@@ -303,7 +303,7 @@ dist_gen_key(Bits) when Bits rem 16 =:= 0->
         true -> dist_gen_key(Bits);
         _    ->
             D = mod_inv(Phi, E),
-            {E, D, N}
+            {E, D, N, P, Q}
     end.
 
 call_in(Pid) ->
