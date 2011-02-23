@@ -189,12 +189,13 @@ master_loop(#mdata{task = T
                   } = LoopData) ->
     receive
         update ->
-            [ update(S) || S <- W],
+            [ update(S) || S <- W ],
             ?MODULE:master_loop(LoopData);
         terminate ->
+            [ terminate(s) || S <- W ],
             ok;
         killall ->
-            [ S ! terminate || S <- W ],
+            [ kill(S) || S <- W ],
             master_loop(LoopData#mdata{workers=[]});
         {register, Pid} ->
             Pid ! {ok, self()},
@@ -269,6 +270,8 @@ kill(Pid) ->
 update(Pid) ->
     catch Pid ! update.
 
+terminate(Pid) ->
+    catch Pid ! terminate.
 
 mterminate() ->
     master ! terminate.
@@ -354,7 +357,7 @@ servant_loop(#sdata{master = M, worker = W} = LoopData) ->
 try_kill(Pid) ->
     case Pid of
         undefined -> ok;
-        _         -> exit(Pid, normal)
+        _         -> exit(Pid, kill)
     end.
 
 slave_prime(Bits) ->
