@@ -132,6 +132,8 @@ gen_key(Bits) when Bits rem 16 =:= 0->
             {E, D, N, P, Q}
     end.
 
+rsa(Data, Key, Mod) when Data >= Mod ->
+    {error, out_of_range};
 rsa(Data, Key, Mod) ->
     exp_mod(Data, Key, Mod).
 
