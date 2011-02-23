@@ -325,7 +325,11 @@ servant(Node) ->
 servant_loop(#sdata{master = M, worker = W} = LoopData) ->
     receive
         terminate ->
+            try_kill(W)
             ok;
+        kill ->
+            try_kill(W),
+            servant_loop(LoopData#sdata{worker = undefined});
         update ->
             ?MODULE:servant_loop(LoopData);
         {find_prime, Bits} ->
