@@ -25,6 +25,7 @@
          , mterminate/0
          , mupdate/0
          , dist_primes/1
+         , factor/1
          ]).
 
 -export([start_servant/0
@@ -34,6 +35,8 @@
          , servant_loop/1
          , slave_prime/1
          , do_slave_prime/2
+         , slave_factor/1
+         , do_slave_factor/3
          , slaves/1
          , slaves/2
          , call_in/1
@@ -226,12 +229,40 @@ master_loop(#mdata{task = T
         {noprime, Pid} ->
             start_prime(Pid, LoopData#mdata.bits),
             master_loop(LoopData);
+        {factor, Pid, N} ->
+            case T of
+                undefined ->
+                    [ start_factor(S, N) || S <- W ],
+                    master_loop(LoopData#mdata{task = Pid
+                                               , bits = N
+                                               , intask = factor
+                                              });
+                _ ->
+                    Pid ! {error, already_doing_shit}
+            end;
+        {factor, P} when I =:= factor ->
+            case LoopData#mdata.bits rem P =:= 0 of
+                true ->
+                    Q = LoopData#mdata.bits div P,
+                    [ kill(S) || S <- W ],
+                    catch T ! {ok, factor, {P, Q}},
+                    master_loop(LoopData#mdata{task = undefined
+                                               , bits = undefined
+                                               , intask = undefined
+                                              });
+                _   ->
+                    io:format("Someone tried to lie to us~n", []),
+                    master_loop(LoopData)
+            end;
         _ ->
             master_loop(LoopData)
     end.
 
 start_prime(Pid, Bits) ->
     catch Pid ! {find_prime, Bits}.
+
+start_factor(Pid, N) ->
+    catch Pid ! {factor, N}.
 
 kill(Pid) ->
     catch Pid ! kill.
@@ -252,6 +283,14 @@ dist_primes(Bits) ->
         {ok, primes, {P, Q}} ->
             {P, Q}
     end.
+
+factor(N) ->
+    master ! {factor, self(), N},
+    receive
+        {ok, factor, {P, Q}} ->
+            {P, Q}
+    end.
+
 
 call_in(Pid) ->
     call_in(Pid, node()).
@@ -297,6 +336,14 @@ servant_loop(#sdata{master = M, worker = W} = LoopData) ->
             try_kill(W),
             M ! {prime, N},
             servant_loop(LoopData#sdata{worker = undefined});
+        {factor, N} ->
+            try_kill(W),
+            {ok, Pid} = slave_factor(N),
+            servant_loop(LoopData#sdata{worker = Pid});
+        {a_factor, P} ->
+            try_kill(W),
+            M ! {factor, P},
+            servant_loop(LoopData#sdata{worker = undefined});
         _ ->
             servant_loop(LoopData)
     end.
@@ -318,3 +365,17 @@ do_slave_prime(Pid, Bits) ->
         N ->
             Pid ! {prime, N}
     end.
+
+slave_factor(N) ->
+    M = find_prime(16, -1),
+    Pid = spawn(?MODULE, do_slave_factor, [self(), N, M]),
+    {ok, Pid}.
+
+do_slave_factor(Pid, N, M) ->
+    case rho(N, M) of
+        {error, Reply} ->
+            Pid ! {error, Reply};
+        N ->
+            Pid ! {a_factor, N}
+    end.
+
