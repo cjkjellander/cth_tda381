@@ -68,7 +68,7 @@ allowed() ->
     ].
 
 do_allow() ->
-    [ net_kernel:allow(N) || N <- allowed() ].
+    net_kernel:allow(allowed()).
 
 whos_boss() ->
     global:whereis_name(master).
