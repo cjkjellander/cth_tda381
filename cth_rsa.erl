@@ -325,7 +325,7 @@ servant(Node) ->
 servant_loop(#sdata{master = M, worker = W} = LoopData) ->
     receive
         terminate ->
-            try_kill(W)
+            try_kill(W),
             ok;
         kill ->
             try_kill(W),
