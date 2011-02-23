@@ -26,6 +26,7 @@
          , mupdate/0
          , dist_primes/1
          , factor/1
+         , dist_gen_key/1
          ]).
 
 -export([start_servant/0
@@ -293,6 +294,17 @@ factor(N) ->
             {P, Q}
     end.
 
+dist_gen_key(Bits) when Bits rem 16 =:= 0->
+    {P, Q} = dist_primes(Bits),
+    N      = n(P, Q),
+    Phi    = phi(P, Q),
+    E      = 16#10001, %Good public exponent
+    case Phi rem E =:= 0 of
+        true -> gen_key(Bits);
+        _    ->
+            {_, D} = ext_gcd(Phi, E),
+            {E, D, N}
+    end.
 
 call_in(Pid) ->
     call_in(Pid, node()).
