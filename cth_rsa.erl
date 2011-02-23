@@ -18,6 +18,9 @@
          , rho/1
          , rho/2
          , apa/1
+         , allowed/0
+         , do_allow/0
+         , whos_boss/0
         ]).
 
 -export([start_master/0
@@ -58,6 +61,17 @@
 -record(sdata, {master
                 , worker
                }).
+
+allowed() ->
+    [moose@tjurhaj
+     , sausage@fugu
+    ].
+
+do_allow() ->
+    [ net_kernel:allow(N) || N <- allowed() ].
+
+whos_boss() ->
+    global:whereis_name(master).
 
 exp_mod(A, 1, _) ->
     A;
