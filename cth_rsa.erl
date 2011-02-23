@@ -396,4 +396,3 @@ do_slave_factor(Pid, N, M) ->
         P     ->
             Pid ! {a_factor, P}
     end.
-
