@@ -10,6 +10,7 @@
          , n/2
          , phi/2
          , gen_key/1
+         , key_from_pq/2
          , rsa/3
          , int_code/1
          , int_decode/1
@@ -132,7 +133,19 @@ gen_key(Bits) when Bits rem 16 =:= 0->
             {E, D, N, P, Q}
     end.
 
-rsa(Data, Key, Mod) when Data >= Mod ->
+key_from_pq(P, Q) ->
+    N   = n(P, Q),
+    Phi = phi(P, Q),
+    E   = 16#10001, %Good public exponent
+    case Phi rem E =:= 0 of
+        true -> {error, bad_p_q};
+        _    ->
+            D = mod_inv(Phi, E),
+            {E, D, N, P, Q}
+    end.
+
+
+rsa(Data, _Key, Mod) when Data >= Mod ->
     {error, out_of_range};
 rsa(Data, Key, Mod) ->
     exp_mod(Data, Key, Mod).
