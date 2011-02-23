@@ -373,9 +373,9 @@ slave_factor(N) ->
 
 do_slave_factor(Pid, N, M) ->
     case rho(N, M) of
-        {error, Reply} ->
-            Pid ! {error, Reply};
-        N ->
-            Pid ! {a_factor, N}
+        error ->
+            Pid ! {error, notfound};
+        P     ->
+            Pid ! {a_factor, P}
     end.
 
