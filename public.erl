@@ -1,6 +1,21 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% @author Carl-Johan Kjellander <carl-johan@klarna.com>
+%%% @copyright Carl-Johan Kjellander 2011 GPL 3.0
+%%%
+%%% @doc Public part of the RSA Challenges 2011
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 -module(public).
 -export([chal/1
         ]).
+
+%% @spec chal(BitLength::integer() -> {Ciphertext, Exponent, Modulus}
+%%           Ciphertext = integer()
+%%           Exponent   = integer()
+%%           Modulus    = integer()
+%% @doc All RSA challenges encoded with 80 to 256 bits.
+%%      The Ciphertext, once decoded can be transformed to a string
+%%      with cth_rsa:int_decode(PlaintextInteger).
+%% @end
 
 chal(80) ->
     {577083856964599403382997
