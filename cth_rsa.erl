@@ -18,6 +18,7 @@
          , fermat/1
          , find_prime/1
          , find_prime/2
+         , prime_search/2
          , mod_inv/2
          , n/2
          , phi/2
@@ -153,10 +154,12 @@ find_prime(Bits, I) when Bits rem 8 =:= 0 ->
 
 prime_search(_, 0) ->
     {error, none_found};
+prime_search(N, I) when N rem 2 =:= 0 ->
+    prime_search(N+1, I);
 prime_search(N, I) ->
     case fermat(N) of
         true -> N;
-        _    -> prime_search(N+1, I-1)
+        _    -> prime_search(N+2, I-1)
     end.
 
 mod_inv(Phi, E) ->
