@@ -89,6 +89,17 @@
 -record(sdata, {master
                 , worker
                }).
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%% RUN THIS FIRST! %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% @doc Sets the random seed and starts the crypto app. Run this first.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+init() ->
+    random:seed(now()),
+    application:start(crypto).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 %% @spec allowed() -> List
 %%       List = [atom()]
 %% @doc Returns a list of nodes to allow to connect.
@@ -121,10 +132,6 @@ exp_mod(A, E, N) ->
 %% @doc Calculates A² mod N
 square(A,N) -> (A*A) rem N.
 
-%% @doc Sets the random seed and starts the crypto app. Run this first.
-init() ->
-    random:seed(now()),
-    application:start(crypto).
 
 %% @spec format(N::integer) -> bool()
 %% @doc Probabalistic prime test of N. Returns true if N possibly is prime.
@@ -144,14 +151,39 @@ do_fermat(N, I) ->
             false
     end.
 
+%% @spec find_prime(Bits::integer()) -> integer() | term()
+%% @doc Searches for a cryptographically strong prime with the Fermat test.
+%%      Uses a default search space. Bits must be divisible by 8.
+%% @end
 find_prime(Bits) when Bits rem 8 =:= 0 ->
     find_prime(Bits, ?S_SPACE).
 
+%% @spec find_prime(Bits::integer(), I::integer()) -> integer() | term()
+%% @doc Searches for a cryptographically strong prime with the Fermat test.
+%%      Searches I amount of odd numbers. Bits must be divisible by 8.
+%%      Set I = -1 of you want to search until one is found.
+%%      Returns {error, none_found} if none was found in the search space.
+%% @end
 find_prime(Bits, I) when Bits rem 8 =:= 0 ->
     <<R1:Bits>> = crypto:rand_bytes(Bits div 8),
     R = R1 bor (1 bsl (Bits -1)),
     prime_search(R, I).
 
+%% @spec prime_search(N::integer(), I::integer()) -> integer() | term()
+%% @doc Searches for a cryptographically strong prime with the Fermat test.
+%%      Searches I amount of odd numbers. Bits must be divisible by 8.
+%%      Set I = -1 of you want to search until one is found.
+%%      Returns {error, none_found} if none was found in the search space.
+%% @end
+find_prime(Bits, I) when Bits rem 8 =:= 0 ->
+    <<R1:Bits>> = crypto:rand_bytes(Bits div 8),
+    R = R1 bor (1 bsl (Bits -1)),
+    prime_search(R, I).
+
+%% @spec prime_search(N::integer(), I::integer()) -> integer() | term()
+%% @doc Performs Fermat test on I odd numbers starting from N.
+%%      Returns the first prime or {error, none_found} if none was found.
+%% @end
 prime_search(_, 0) ->
     {error, none_found};
 prime_search(N, I) when N rem 2 =:= 0 ->
@@ -161,6 +193,7 @@ prime_search(N, I) ->
         true -> N;
         _    -> prime_search(N+2, I-1)
     end.
+
 
 mod_inv(Phi, E) ->
     case ext_gcd(Phi, E) of
