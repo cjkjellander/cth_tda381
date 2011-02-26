@@ -1,4 +1,16 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% @author Carl-Johan Kjellander <carl-johan@klarna.com>
+%%% @copyright Carl-Johan Kjellander 2011 GPL 3.0
+%%%
+%%% @doc Functions for RSA Encryption, Key Generation, Factorization.
+%%%      Also a distributed computational cluster for key generation
+%%%      and factorization.
+%%% @end
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 -module(cth_rsa).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% Functions for RSA
 
 -export([exp_mod/3
          , square/2
@@ -23,6 +35,9 @@
          , whos_boss/0
         ]).
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% Functions for the cluster master
+
 -export([start_master/0
          , master/0
          , master_loop/1
@@ -32,6 +47,9 @@
          , factor/1
          , dist_gen_key/1
          ]).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% Functions for the cluster slaves
 
 -export([start_servant/0
          , start_servant/1
@@ -51,6 +69,12 @@
 -define(GIGANTIC, 16#7fffffff).
 -define(S_SPACE,  16#100000).
 
+%% @type mdata() = #mdata{task      = pid()
+%%                        , workers = [pid()]
+%%                        , primes  = [integer()]
+%%                        , bits    = integer()
+%%                        , intask  = atom()
+%%                       }
 -record(mdata, {task
                 , workers = []
                 , primes = []
@@ -58,21 +82,31 @@
                 , intask
                }).
 
+%% @type sdata() = #sdata{master   = pid()
+%%                        , worker = pid()
+%%                       }
 -record(sdata, {master
                 , worker
                }).
-
+%% @spec allowed() -> List
+%%       List = [atom()]
+%% @doc Returns a list of nodes to allow to connect.
 allowed() ->
     [moose@tjurhaj
      , sausage@fugu
     ].
 
+%% @doc allows all nodes in allowed() to connect.
 do_allow() ->
     net_kernel:allow(allowed()).
 
+%% @spec whos_boss() -> pid()
+%% @doc Returns the pid of the globally registered master.
 whos_boss() ->
     global:whereis_name(master).
 
+%% @spec exp_mod(A::integer(), E::integer(), N::integer()) -> integer()
+%% @doc Calculates A^E mod N.
 exp_mod(A, 1, _) ->
     A;
 exp_mod(_, 0, _) ->
@@ -82,12 +116,19 @@ exp_mod(A, E, N) when E rem 2 =:= 0 ->
 exp_mod(A, E, N) ->
     (A*exp_mod(A, E-1, N)) rem N.
 
+%% @spec square(A::integer(), N::integer()) -> integer()
+%% @doc Calculates A² mod N
 square(A,N) -> (A*A) rem N.
 
+%% @doc Sets the random seed and starts the crypto app. Run this first.
 init() ->
     random:seed(now()),
     application:start(crypto).
 
+%% @spec format(N::integer) -> bool()
+%% @doc Probabalistic prime test of N. Returns true if N possibly is prime.
+%%      Will be fooled by Carmichael numbers.
+%% @end
 fermat(N) ->
     do_fermat(N, 40).
 
