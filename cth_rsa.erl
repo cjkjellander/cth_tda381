@@ -196,23 +196,39 @@ prime_search(N, I) ->
 
 %% @spec mod_inv(Phi::integer(), PublicExp::integer()) -> PrivateExp
 %%               PrivateExp = integer()
-
+%% @doc Calculates the modular inverse D from Phi and E.
+%%      Make sure Phi and E are relatively prime since the function
+%%      doesn't check for you. It makes sure D is positive.
+%% @end
 mod_inv(Phi, E) ->
     case ext_gcd(Phi, E) of
         {_, D} when D < 0 -> Phi + D;
         {_, D}            -> D
     end.
 
+%% @spec ext_gcd(A::integer(), B::integer()) -> integer()
+%% @doc Extended GDC algorithm. Make sure A > B and relatively prime.
 ext_gcd(A, B) when A rem B =:= 0 ->
     {0, 1};
 ext_gcd(A, B) ->
     {X, Y} = ext_gcd(B, A rem B),
     {Y, X-(Y*(A div B))}.
 
+%% @spec n(P::integer(), Q::integer()) -> integer()
 n(P, Q) -> P*Q.
 
+%% @spec phi(P::integer(), Q::integer()) -> integer()
 phi(P, Q) -> (P-1)*(Q-1).
 
+%% @gen_key(Bits::integer()) -> {E, D, N, P, Q}
+%%      E = integer()
+%%      D = integer()
+%%      N = integer()
+%%      P = integer()
+%%      Q = integer()
+%% @doc Generate a RSA key of Bits length. Bits has to be divisible by 16.
+%%      P and Q are not really needed but included for reference.
+%% @end
 gen_key(Bits) when Bits rem 16 =:= 0->
     P   = find_prime(Bits div 2, -1),
     Q   = find_prime(Bits div 2, -1),
@@ -226,6 +242,15 @@ gen_key(Bits) when Bits rem 16 =:= 0->
             {E, D, N, P, Q}
     end.
 
+%% @key_from_pq(P::integer(), Q::integer()) -> {E, D, N, P, Q}
+%%      E = integer()
+%%      D = integer()
+%%      N = integer()
+%%      P = integer()
+%%      Q = integer()
+%% @doc Generate a new RSA key if you know P and Q.
+%%      Good to use if you factor someones key.
+%% @end
 key_from_pq(P, Q) ->
     N   = n(P, Q),
     Phi = phi(P, Q),
