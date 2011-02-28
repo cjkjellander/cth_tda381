@@ -246,7 +246,7 @@ gen_key(Bits) when Bits rem 16 =:= 0->
 %% @end
 key_from_pq(P, Q) ->
     E   = 16#10001, %Good public exponent
-    key_from_pq(P, Q, E)
+    key_from_pq(P, Q, E).
 
 %% @spec key_from_pq(P, Q, E) -> {E, D, N, P, Q}
 %%      E = integer()
