@@ -271,39 +271,70 @@ key_from_pq(P, Q, E) ->
 %%       C = integer() | term()
 %% @doc Performs RSA encryption and decryption. Check so data isn't
 %%      as large or larger than the modulus. Use with E and N for
-%%      
+%%      encryption, D and N for decryption.
+%% @end
 rsa(Data, _Key, Mod) when Data >= Mod ->
     {error, out_of_range};
 rsa(Data, Key, Mod) ->
     exp_mod(Data, Key, Mod).
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Helper functions.
+
+%% @spec int_code(L::list()) -> integer()
+%% @doc Convert a string to an integer. First char will be MSB.
 int_code(L) -> do_int_code(L, 0).
 
+%% @spec do_int_code(list(), list()) -> integer()
 do_int_code([H|T], Acc) -> do_int_code(T, Acc bsl 8 + H);
 do_int_code([], Acc)    -> Acc.
 
+%% @spec int_decode(I::integer()) -> list()
+%% @doc Decodes an integer to a string. MSB is the first char of string.
 int_decode(I) ->
     do_int_decode(I, []).
 
+%% @spec do_int_decode(integer(), list()) -> list()
 do_int_decode(0, Acc) ->
     Acc;
 do_int_decode(I, Acc) ->
     A = I band 16#ff,
     do_int_decode(I bsr 8, [A | Acc]).
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Factorization functions
+
+%% spec gcd(A::integer(), B::integer()) -> integer()
 gcd(A, 0) -> A;
+gcd(A, B) when A < B -> gcb(B, A);
 gcd(A, B) -> gcd(B, A rem B).
 
+%% @spec f(X::integer, R::integer(), N::integer()) -> integer()
+%% @doc family of pseudorandom series geberators. R should probably be prime.
 f(X,R,N) -> (X*X+R) rem N.
 
+%% @spec rho(N::integer()) -> D
+%%       D = integer() | atom()
+%% @doc Pollard's Rho factorization. Returns a factor if it finds it
+%%      or the atom error if the pseudo function starts looping.
+%% @end
 rho(N)->
     rho(N,1).
 
+%% @spec rho(N::integer(), R::integer()) -> D
+%%       D = integer() | atom()
+%% @doc Pollard's Rho factorization. Returns a factor if it finds it
+%%      or the atom error if the pseudo function starts looping.
+%%      This version uses R, which should be a prime number, to generate
+%%      a family of searches.
+%% @end
 rho(N, R) ->
     X = f(1, R, N),
     Y = f(f(1, R, N), R, N),
     do_rho(N, R, X, Y).
 
+%% @spec do_rho(N::integer(), R::integer(), X::integer(), Y::integer()) -> D
+%%       D = integer() | atom()
 do_rho(N, R, X, Y) ->
     XN = f(X, R, N),
     YN = f(f(Y, R, N), R, N),
@@ -313,6 +344,8 @@ do_rho(N, R, X, Y) ->
         D -> D
     end.
 
+%% @spec apa(N::integer()) -> atom()
+%% @doc Count from N to 0. For testing counting speed.
 apa(0) -> ok;
 apa(N) -> apa(N-1).
 
