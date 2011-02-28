@@ -267,7 +267,11 @@ key_from_pq(P, Q, E) ->
             {E, D, N, P, Q}
     end.
 
-
+%% @spec rsa(Data::integer(), Key::integer(), Mod::integer()) -> C
+%%       C = integer() | term()
+%% @doc Performs RSA encryption and decryption. Check so data isn't
+%%      as large or larger than the modulus. Use with E and N for
+%%      
 rsa(Data, _Key, Mod) when Data >= Mod ->
     {error, out_of_range};
 rsa(Data, Key, Mod) ->
