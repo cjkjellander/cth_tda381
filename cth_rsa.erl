@@ -306,7 +306,7 @@ do_int_decode(I, Acc) ->
 
 %% spec gcd(A::integer(), B::integer()) -> integer()
 gcd(A, 0) -> A;
-gcd(A, B) when A < B -> gcb(B, A);
+gcd(A, B) when A < B -> gcd(B, A);
 gcd(A, B) -> gcd(B, A rem B).
 
 %% @spec f(X::integer, R::integer(), N::integer()) -> integer()
