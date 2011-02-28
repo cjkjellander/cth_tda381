@@ -45,6 +45,7 @@
          , master_loop/1
          , mterminate/0
          , mupdate/0
+         , listworkers/0
          , dist_primes/1
          , factor/1
          , dist_gen_key/1
@@ -456,6 +457,15 @@ mterminate() ->
 %% @doc update master to latest version of code.
 mupdate() ->
     master ! update.
+
+%% @spec listworkers() -> List
+%%       List = [pid()]
+%% @doc Returns the list of servants.
+listworkers() ->
+    master ! {listworkers, self()},
+    receive
+        W -> W
+    end.
 
 %% @spec dist_primes(Bits::integer()) -> {ok, primes, {P, Q}}
 %%       P = integer()
