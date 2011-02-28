@@ -107,7 +107,7 @@ pong
 (moose@fugu)29> cth_rsa:int_decode(cth_rsa:rsa(C2, D2, N2)).
 "format c:\n"
 
-%% Send your decrypted results to carl-johan@klarna.com
+%% Send your decrypted results to "my-firstname"@klarna.com
 %% A Quadratic Sieve or a MPQS would probably be a lot nicer.
 %% Feel free to improve it.
 
