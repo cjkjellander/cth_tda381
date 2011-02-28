@@ -24,6 +24,7 @@
          , phi/2
          , gen_key/1
          , key_from_pq/2
+         , key_from_pq/3
          , rsa/3
          , int_code/1
          , int_decode/1
@@ -209,7 +210,7 @@ n(P, Q) -> P*Q.
 %% @spec phi(P::integer(), Q::integer()) -> integer()
 phi(P, Q) -> (P-1)*(Q-1).
 
-%% @gen_key(Bits::integer()) -> {E, D, N, P, Q}
+%% @spec gen_key(Bits::integer()) -> {E, D, N, P, Q}
 %%      E = integer()
 %%      D = integer()
 %%      N = integer()
@@ -217,6 +218,8 @@ phi(P, Q) -> (P-1)*(Q-1).
 %%      Q = integer()
 %% @doc Generate a RSA key of Bits length. Bits has to be divisible by 16.
 %%      P and Q are not really needed but included for reference.
+%%      E and N is the public key.
+%%      D and N is the private key.
 %% @end
 gen_key(Bits) when Bits rem 16 =:= 0->
     P   = find_prime(Bits div 2, -1),
@@ -231,7 +234,7 @@ gen_key(Bits) when Bits rem 16 =:= 0->
             {E, D, N, P, Q}
     end.
 
-%% @key_from_pq(P::integer(), Q::integer()) -> {E, D, N, P, Q}
+%% @spec key_from_pq(P::integer(), Q::integer()) -> {E, D, N, P, Q}
 %%      E = integer()
 %%      D = integer()
 %%      N = integer()
@@ -239,11 +242,24 @@ gen_key(Bits) when Bits rem 16 =:= 0->
 %%      Q = integer()
 %% @doc Generate a new RSA key if you know P and Q.
 %%      Good to use if you factor someones key.
+%%      Use a standard E.
 %% @end
 key_from_pq(P, Q) ->
+    E   = 16#10001, %Good public exponent
+    key_from_pq(P, Q, E)
+
+%% @spec key_from_pq(P, Q, E) -> {E, D, N, P, Q}
+%%      E = integer()
+%%      D = integer()
+%%      N = integer()
+%%      P = integer()
+%%      Q = integer()
+%% @doc Generate a new RSA key if you know P, Q and E.
+%%      Good to use if you factor someones key.
+%% @end
+key_from_pq(P, Q, E) ->
     N   = n(P, Q),
     Phi = phi(P, Q),
-    E   = 16#10001, %Good public exponent
     case Phi rem E =:= 0 of
         true -> {error, bad_p_q};
         _    ->
