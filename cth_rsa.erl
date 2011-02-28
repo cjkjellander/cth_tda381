@@ -170,17 +170,6 @@ find_prime(Bits, I) when Bits rem 8 =:= 0 ->
     prime_search(R, I).
 
 %% @spec prime_search(N::integer(), I::integer()) -> integer() | term()
-%% @doc Searches for a cryptographically strong prime with the Fermat test.
-%%      Searches I amount of odd numbers. Bits must be divisible by 8.
-%%      Set I = -1 of you want to search until one is found.
-%%      Returns {error, none_found} if none was found in the search space.
-%% @end
-find_prime(Bits, I) when Bits rem 8 =:= 0 ->
-    <<R1:Bits>> = crypto:rand_bytes(Bits div 8),
-    R = R1 bor (1 bsl (Bits -1)),
-    prime_search(R, I).
-
-%% @spec prime_search(N::integer(), I::integer()) -> integer() | term()
 %% @doc Performs Fermat test on I odd numbers starting from N.
 %%      Returns the first prime or {error, none_found} if none was found.
 %% @end
