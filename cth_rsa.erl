@@ -349,15 +349,24 @@ do_rho(N, R, X, Y) ->
 apa(0) -> ok;
 apa(N) -> apa(N-1).
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Functions for the master of the cluster
 
+%% @spec start_master() -> pid()
+%% @doc Start the master server.
 start_master() ->
     spawn(?MODULE, master, []).
 
+%% @spec master() -> term()
 master() ->
     register(master, self()),
     global:register_name(master, self()),
     master_loop(#mdata{}).
 
+%% @spec master_loop() -> term()
+%% @doc The receive loop of the master server.
+%%      All results are sent back to the server asynchronously, and
+%%      are forwarded to the pid that started the task.
 master_loop(#mdata{task = T
                    , workers = W
                    , primes = Primes
@@ -409,6 +418,7 @@ master_loop(#mdata{task = T
             case T of
                 undefined ->
                     [ start_factor(S, N) || S <- W ],
+                    % bits is reused to store N
                     master_loop(LoopData#mdata{task = Pid
                                                , bits = N
                                                , intask = factor
@@ -434,27 +444,23 @@ master_loop(#mdata{task = T
             master_loop(LoopData)
     end.
 
-start_prime(Pid, Bits) ->
-    catch Pid ! {find_prime, Bits}.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Master API
 
-start_factor(Pid, N) ->
-    catch Pid ! {factor, N}.
-
-kill(Pid) ->
-    catch Pid ! kill.
-
-update(Pid) ->
-    catch Pid ! update.
-
-terminate(Pid) ->
-    catch Pid ! terminate.
-
+%% @spec mterminate() -> term()
+%% @doc terminate master, servants and all workers.
 mterminate() ->
     master ! terminate.
 
+%% @spec mupdate() -> term()
+%% @doc update master to latest version of code.
 mupdate() ->
     master ! update.
 
+%% @spec dist_primes(Bits::integer()) -> {ok, primes, {P, Q}}
+%%       P = integer()
+%%       Q = integer()
+%% @doc Start a distributed search for 2 primes.
 dist_primes(Bits) ->
     master ! {primes, self(), Bits div 2},
     receive
@@ -462,6 +468,10 @@ dist_primes(Bits) ->
             {P, Q}
     end.
 
+%% @spec factor(N::integer()) -> {ok, factor, {P, Q}}
+%%       P = integer()
+%%       Q = integer()
+%% @doc Start a distributed factorization of N.
 factor(N) ->
     master ! {factor, self(), N},
     receive
@@ -469,6 +479,18 @@ factor(N) ->
             {P, Q}
     end.
 
+%% @spec dist_gen_key(Bits::integer()) -> {E, D, N, P, Q}
+%%      E = integer()
+%%      D = integer()
+%%      N = integer()
+%%      P = integer()
+%%      Q = integer()
+%% @doc Distributed generation of a new RSA key.
+%%      Bits has to be divisible by 16.
+%%      P and Q are not really needed but included for reference.
+%%      E and N is the public key.
+%%      D and N is the private key.
+%% @end
 dist_gen_key(Bits) when Bits rem 16 =:= 0->
     {P, Q} = dist_primes(Bits),
     N      = n(P, Q),
@@ -481,9 +503,13 @@ dist_gen_key(Bits) when Bits rem 16 =:= 0->
             {E, D, N, P, Q}
     end.
 
+%% @spec call_in(Pid::pid()) -> term()
+%% @doc Register a servant with the server on the same node.
 call_in(Pid) ->
     call_in(Pid, node()).
 
+%% @spec call_in(Pid::pid(), Node::atom()) -> term()
+%% @doc Register a servant with the server on Node.
 call_in(Pid, Node) ->
     {master, Node} ! {register, Pid},
     receive
@@ -492,25 +518,43 @@ call_in(Pid, Node) ->
             {error, timeout}
     end.
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Servant functions.
+
+%% @spec slaves(N::integer()) -> List
+%%       List = [pid()]
+%% @doc Start N slaves on this node.
 slaves(N) ->
     slaves(N, node()).
 
+%% @spec slaves(N::integer(), Node::atom()) -> List
+%%       List = [pid()]
+%% @doc Start N slaves on Node.
 slaves(N, Node) ->
     [ start_servant(Node) || _ <- lists:seq(1,N) ].
 
+%% @spec start_servant() -> term()
+%% @doc Start a single servant.
 start_servant() ->
     start_servant(node()).
 
+%% @spec start_servant(Node::atom()) -> term()
+%% @doc Start a single servant on Node.
 start_servant(Node) ->
     spawn(?MODULE, servant, [Node]).
 
+%% @spec servant() -> term()
 servant() ->
     servant(node()).
 
+%% @spec servant(Node::atom()) -> term()
+%% @doc Register a node and go into receive loop.
 servant(Node) ->
     {ok, Pid} = call_in(self(), Node),
     servant_loop(#sdata{master = Pid}).
 
+%% @spec servant_loop(term()) -> term()
+%% @doc Receive loop for servant.
 servant_loop(#sdata{master = M, worker = W} = LoopData) ->
     receive
         terminate ->
@@ -541,16 +585,25 @@ servant_loop(#sdata{master = M, worker = W} = LoopData) ->
             servant_loop(LoopData)
     end.
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Servant helper functions
+
+%% @spec try_kill(Pid::pid()) -> term()
+%% @doc Try and kill a worker.
 try_kill(Pid) ->
     case Pid of
         undefined -> ok;
         _         -> exit(Pid, kill)
     end.
 
+%% @spec slave_prime(Bits::integer()) -> term()
+%% @doc Spawn off a worker looking for a prime.
 slave_prime(Bits) ->
     Pid = spawn(?MODULE, do_slave_prime, [self(), Bits]),
     {ok, Pid}.
 
+%% @spec do_slave_prime(Pid::pid(), Bits::integer()) -> term().
+%% @doc Worker search for a prime. Send result to Pid.
 do_slave_prime(Pid, Bits) ->
     case find_prime(Bits, -1) of
         {error, Reply} ->
@@ -559,11 +612,17 @@ do_slave_prime(Pid, Bits) ->
             Pid ! {prime, N}
     end.
 
+%% @spec slave_factor(N::integer()) -> term()
+%% @doc Spawn off a worker trying to find a factor of N,
+%%      with a 16 bit random prime number as
+%%      a contstant in the pseudorandom function.
 slave_factor(N) ->
     M = find_prime(16, -1),
     Pid = spawn(?MODULE, do_slave_factor, [self(), N, M]),
     {ok, Pid}.
 
+%% @spec do_slave_factor(Pid::pid(), N::integer(), M::integer()) -> term().
+%% @doc Worker search for a factor of N. Send result to Pid.
 do_slave_factor(Pid, N, M) ->
     case rho(N, M) of
         error ->
@@ -571,3 +630,32 @@ do_slave_factor(Pid, N, M) ->
         P     ->
             Pid ! {a_factor, P}
     end.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Servant API
+
+%% @spec start_prime(Pid::pid(), Bits::bits()) -> term()
+%% @doc Interface function to get servants to start looking for primes.
+start_prime(Pid, Bits) ->
+    catch Pid ! {find_prime, Bits}.
+
+%% @spec start_factor(Pid::pid(), N::bits()) -> term()
+%% @doc Interface function to get servants to start factoring N.
+start_factor(Pid, N) ->
+    catch Pid ! {factor, N}.
+
+%% @spec kill(Pid::pid()) -> term()
+%% @doc Interface function to kill a servant's worker, but not the server.
+kill(Pid) ->
+    catch Pid ! kill.
+
+%% @spec update(Pid::pid()) -> term()
+%% @doc Interface function to update a servant.
+update(Pid) ->
+    catch Pid ! update.
+
+%% @spec update(Pid::pid()) -> term()
+%% @doc Interface function to kill a servant and its worker.
+terminate(Pid) ->
+    catch Pid ! terminate.
+
