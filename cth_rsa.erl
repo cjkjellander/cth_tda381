@@ -10,7 +10,7 @@
 -module(cth_rsa).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% Functions for RSA
+%% Functions for RSA
 
 -export([exp_mod/3
          , square/2
@@ -37,7 +37,7 @@
         ]).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% Functions for the cluster master
+%% Functions for the cluster master
 
 -export([start_master/0
          , master/0
@@ -50,7 +50,7 @@
          ]).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% Functions for the cluster slaves
+%% Functions for the cluster slaves
 
 -export([start_servant/0
          , start_servant/1
@@ -129,7 +129,7 @@ exp_mod(A, E, N) ->
     (A*exp_mod(A, E-1, N)) rem N.
 
 %% @spec square(A::integer(), N::integer()) -> integer()
-%% @doc Calculates A² mod N
+%% @doc Calculates AÂ² mod N
 square(A,N) -> (A*A) rem N.
 
 
@@ -194,6 +194,8 @@ prime_search(N, I) ->
         _    -> prime_search(N+2, I-1)
     end.
 
+%% @spec mod_inv(Phi::integer(), PublicExp::integer()) -> PrivateExp
+%%               PrivateExp = integer()
 
 mod_inv(Phi, E) ->
     case ext_gcd(Phi, E) of
